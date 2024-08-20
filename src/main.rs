@@ -1,6 +1,6 @@
 use crossterm::{
     execute,
-    terminal::{self, ClearType, EnterAlternateScreen, LeaveAlternateScreen, enable_raw_mode, disable_raw_mode},
+    terminal::{self, ClearType, EnterAlternateScreen, LeaveAlternateScreen, enable_raw_mode, disable_raw_mode, size},
     event::{self, KeyCode, KeyEvent},
     cursor,
 };
@@ -13,7 +13,7 @@ fn main() -> Result<(), std::io::Error> {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     let mut stdout = io::stdout();
     let mut files = Vec::new();
-    let mut selected_index = 0;
+    let mut selected_index: usize = 0;
     let mut error_message = String::new();
 
     // Enter alternate screen
@@ -26,7 +26,13 @@ fn main() -> Result<(), std::io::Error> {
         files.push(path.unwrap().path());
     }
 
+    let (_, term_height) = size()?; // term_height is number of rows
+    let visible_lines = (term_height as usize).saturating_sub(2); // Space for visible files
+
     loop {
+        let scroll_start = selected_index.saturating_sub(visible_lines.saturating_sub(1));
+        let scroll_end = std::cmp::min(scroll_start + visible_lines, files.len());
+
         // Clear the screen
         execute!(
             stdout,
@@ -35,7 +41,8 @@ fn main() -> Result<(), std::io::Error> {
         )?;
 
         // Display the list of files with the selected one highlighted
-        for (i, file) in files.iter().enumerate() {
+        for i in scroll_start..scroll_end {
+            let file = &files[i];
             if i == selected_index {
                 print!("\r> {}", file.display());
                 if !error_message.is_empty() {
