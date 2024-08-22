@@ -4,13 +4,15 @@ use crossterm::{
     event::{self, KeyCode, KeyEvent},
     cursor,
 };
-use rodio::{Decoder, OutputStream, source::Source};
+use rodio::{Decoder, OutputStream, source::{SineWave, Source}, Sink};
 use std::io::{self, Write, BufReader};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::fs::File;
 
 fn main() -> Result<(), std::io::Error> {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    let sink = Sink::try_new(&stream_handle).unwrap();
     let mut stdout = io::stdout();
     let mut files = Vec::new();
     let mut selected_index: usize = 0;
@@ -76,9 +78,10 @@ fn main() -> Result<(), std::io::Error> {
                         match File::open(&file_path) {
                             Ok(file) => {
                                 let source = Decoder::new(BufReader::new(file));
+
                                 match source {
                                     Ok(decoded) => {
-                                        stream_handle.play_raw(decoded.convert_samples()).ok();
+                                        sink.append(decoded);
                                     }
                                     Err(_) => {
                                         error_message = "File is not a recognized audio format".to_string();
@@ -90,6 +93,28 @@ fn main() -> Result<(), std::io::Error> {
                             }
                         }
                     }
+                    KeyCode::Char('p') => {
+                        if sink.is_paused() {
+                            sink.play();
+                        } else {
+                            sink.pause();
+                        }
+                    }
+                    KeyCode::Char('=') => {
+                        if sink.volume() >= 1.0 {
+                            sink.set_volume(1.0)
+                        } else {
+                            sink.set_volume(sink.volume()+0.1)
+                        }
+                    }
+                    KeyCode::Char('-') => {
+                        if sink.volume() < 0.0 {
+                            sink.set_volume(0.0)
+                        } else {
+                            sink.set_volume(sink.volume()-0.1)
+                        }
+                    }
+
                     KeyCode::Esc => break, // Exit on Esc key
                     KeyCode::Char('q') => break, // Exit on 'q'
                     _ => {}
