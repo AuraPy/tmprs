@@ -4,9 +4,8 @@ use crossterm::{
     event::{self, KeyCode, KeyEvent},
     cursor,
 };
-use rodio::{Decoder, OutputStream, source::{SineWave, Source}, Sink};
+use rodio::{Decoder, OutputStream, Sink};
 use std::io::{self, Write, BufReader};
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::fs::File;
 
@@ -81,6 +80,7 @@ fn main() -> Result<(), std::io::Error> {
 
                                 match source {
                                     Ok(decoded) => {
+                                        sink.stop();
                                         sink.append(decoded);
                                     }
                                     Err(_) => {
@@ -93,6 +93,7 @@ fn main() -> Result<(), std::io::Error> {
                             }
                         }
                     }
+                    KeyCode::Char('s') => {sink.stop();}
                     KeyCode::Char('p') => {
                         if sink.is_paused() {
                             sink.play();
