@@ -8,10 +8,12 @@ use rodio::{Decoder, OutputStream, Sink};
 use std::io::{self, Write, BufReader};
 use std::time::Duration;
 use std::fs::File;
+use std::path::PathBuf;
 
 fn main() -> Result<(), std::io::Error> {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     let sink = Sink::try_new(&stream_handle).unwrap();
+    let mut repeat: Option<PathBuf> = None;
     let mut stdout = io::stdout();
     let mut files = Vec::new();
     let mut selected_index: usize = 0;
@@ -73,23 +75,25 @@ fn main() -> Result<(), std::io::Error> {
                         }
                     }
                     KeyCode::Enter => {
-                        let file_path = files[selected_index].clone();
-                        match File::open(&file_path) {
-                            Ok(file) => {
-                                let source = Decoder::new(BufReader::new(file));
+                        if repeat.is_none() {
+                            let file_path = files[selected_index].clone();
+                            match File::open(&file_path) {
+                                Ok(file) => {
+                                    let source = Decoder::new(BufReader::new(file));
 
-                                match source {
-                                    Ok(decoded) => {
-                                        sink.stop();
-                                        sink.append(decoded);
-                                    }
-                                    Err(_) => {
-                                        error_message = "File is not a recognized audio format".to_string();
+                                    match source {
+                                        Ok(decoded) => {
+                                            sink.stop();
+                                            sink.append(decoded);
+                                        }
+                                        Err(_) => {
+                                            error_message = "File is not a recognized audio format".to_string();
+                                        }
                                     }
                                 }
-                            }
-                            Err(_) => {
-                                error_message = "Unable to open file".to_string();
+                                Err(_) => {
+                                    error_message = "Unable to open file".to_string();
+                                }
                             }
                         }
                     }
@@ -99,6 +103,13 @@ fn main() -> Result<(), std::io::Error> {
                             sink.play();
                         } else {
                             sink.pause();
+                        }
+                    }
+                    KeyCode::Char('r') => {
+                        if repeat.is_none() {
+                            repeat = Some(files[selected_index].clone());
+                        } else {
+                            repeat = None;
                         }
                     }
                     KeyCode::Char('=') => {
@@ -116,9 +127,30 @@ fn main() -> Result<(), std::io::Error> {
                         }
                     }
 
-                    KeyCode::Esc => break, // Exit on Esc key
-                    KeyCode::Char('q') => break, // Exit on 'q'
+                    KeyCode::Esc | KeyCode::Char('q') => break, // Exit on Esc and q key
                     _ => {}
+                }
+            }
+        }
+
+        if !(repeat.is_none()) && sink.empty() {
+            let file_path = repeat.clone().unwrap();
+            match File::open(&file_path) {
+                Ok(file) => {
+                    let source = Decoder::new(BufReader::new(file));
+
+                    match source {
+                        Ok(decoded) => {
+                            sink.stop();
+                            sink.append(decoded);
+                        }
+                        Err(_) => {
+                            error_message = "File is not a recognized audio format".to_string();
+                        }
+                    }
+                }
+                Err(_) => {
+                    error_message = "Unable to open file".to_string();
                 }
             }
         }
