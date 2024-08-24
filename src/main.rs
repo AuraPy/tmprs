@@ -14,6 +14,7 @@ fn main() -> Result<(), std::io::Error> {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     let sink = Sink::try_new(&stream_handle).unwrap();
     let mut repeat: Option<PathBuf> = None;
+    let mut playlist = false;
     let mut stdout = io::stdout();
     let mut files = Vec::new();
     let mut selected_index: usize = 0;
@@ -83,7 +84,7 @@ fn main() -> Result<(), std::io::Error> {
 
                                     match source {
                                         Ok(decoded) => {
-                                            sink.stop();
+                                            if !playlist {sink.stop()};
                                             sink.append(decoded);
                                         }
                                         Err(_) => {
@@ -110,6 +111,13 @@ fn main() -> Result<(), std::io::Error> {
                             repeat = Some(files[selected_index].clone());
                         } else {
                             repeat = None;
+                        }
+                    }
+                    KeyCode::Char('l') => {
+                        if playlist {
+                            playlist = false
+                        } else {
+                            playlist = true
                         }
                     }
                     KeyCode::Char('=') => {
