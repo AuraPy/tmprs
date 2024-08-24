@@ -9,6 +9,4 @@ If you encounter any errors, please create an issue (and do the same if you have
 
 ## Installation
 
-TMPRS has *not* been packaged for any operating systems or linux distributions yet. If you'd like to use it, you'll have to clone the repository and compile the application.
-
-TMPRS is being packaged for RPM soon.
+TMPRS 0.0.1 has now been packaged for RPM! You can install the RPM from the [releases](https://github.com/AuraPy/tmprs/releases).
